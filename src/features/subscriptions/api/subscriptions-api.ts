@@ -234,15 +234,36 @@ export async function createSubscription(payload: {
   })
 }
 
-export async function renewSubscription(companyId: string, _id?: string): Promise<Subscription> {
+export async function renewSubscription(
+  companyId: string,
+  payload: {
+    planName: string
+    status?: string
+    startsAt: string
+    endsAt: string
+  },
+  _id?: string,
+): Promise<Subscription> {
   if (env.useMock) {
     const id = _id
     if (!id) throw new Error('subscription id required in mock mode')
     const sub = await callMock(() => mockHandlers.renewSubscription(id))
+    sub.planName = payload.planName
+    sub.planCode = payload.planName
+    sub.startsAt = payload.startsAt
+    sub.endsAt = payload.endsAt
+    if (payload.status) sub.status = payload.status
     return normalizeSubscription({ ...sub, planName: sub.planName ?? sub.planCode })
   }
+  // Renew creates a new period — same required fields as create (planName + dates).
   const { data } = await apiClient.post<Subscription>(
     `/admin/companies/${companyId}/subscriptions/renew`,
+    {
+      planName: payload.planName,
+      startsAt: payload.startsAt,
+      endsAt: payload.endsAt,
+      ...(payload.status ? { status: payload.status } : {}),
+    },
   )
   return normalizeSubscription({ ...data, companyId: data.companyId ?? companyId })
 }
@@ -256,6 +277,7 @@ export async function suspendSubscription(companyId: string, _id?: string): Prom
   }
   const { data } = await apiClient.post<Subscription>(
     `/admin/companies/${companyId}/subscriptions/suspend`,
+    {},
   )
   return normalizeSubscription({ ...data, companyId: data.companyId ?? companyId })
 }
@@ -269,6 +291,7 @@ export async function expireSubscription(companyId: string, _id?: string): Promi
   }
   const { data } = await apiClient.post<Subscription>(
     `/admin/companies/${companyId}/subscriptions/expire`,
+    {},
   )
   return normalizeSubscription({ ...data, companyId: data.companyId ?? companyId })
 }
