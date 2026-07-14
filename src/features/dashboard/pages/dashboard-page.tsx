@@ -2,10 +2,10 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { AttentionCompaniesWidget } from '@/features/dashboard/components/attention-companies-widget'
 import { CompanyRankingsWidget } from '@/features/dashboard/components/company-rankings-widget'
 import { DashboardFilterBar } from '@/features/dashboard/components/dashboard-filter-bar'
+import { DashboardQuickLinks } from '@/features/dashboard/components/dashboard-quick-links'
 import { GrowthAnalyticsWidget } from '@/features/dashboard/components/growth-analytics-widget'
 import { OperationalStatisticsWidget } from '@/features/dashboard/components/operational-statistics-widget'
 import { PlatformOverviewWidget } from '@/features/dashboard/components/platform-overview-widget'
-import { QuickActionsWidget } from '@/features/dashboard/components/quick-actions-widget'
 import { RecentActivityWidget } from '@/features/dashboard/components/recent-activity-widget'
 import { RecentCompaniesWidget } from '@/features/dashboard/components/recent-companies-widget'
 import { SubscriptionOverviewWidget } from '@/features/dashboard/components/subscription-overview-widget'
@@ -16,23 +16,26 @@ export function DashboardPage() {
   const reduceMotion = useReducedMotion()
 
   return (
-    <div className="space-y-5">
-      <motion.div
-        initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+    <div className="space-y-6">
+      <motion.header
+        initial={reduceMotion ? false : { opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-        className="flex flex-wrap items-end justify-between gap-3"
+        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        className="flex flex-col gap-4 border-b border-[var(--border)] pb-5 lg:flex-row lg:items-end lg:justify-between"
       >
         <div>
-          <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
-            Platform health
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+            Operations
           </p>
-          <h1 className="mt-1 text-[1.75rem] font-semibold tracking-tight">Good morning</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            Live signals across companies, subscriptions, and support.
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[var(--foreground)]">
+            Platform overview
+          </h1>
+          <p className="mt-1 max-w-xl text-sm text-[var(--muted)]">
+            Entitlement health, growth, and companies that need action — scanned in one composition.
           </p>
         </div>
-      </motion.div>
+        <DashboardQuickLinks />
+      </motion.header>
 
       <DashboardFilterBar />
 
@@ -42,39 +45,29 @@ export function DashboardPage() {
         variants={staggerContainer}
         initial={reduceMotion ? false : 'initial'}
         animate="animate"
-        className="grid gap-4 xl:grid-cols-12"
+        className="grid gap-5 xl:grid-cols-12"
       >
-        <motion.div variants={staggerItem} className="xl:col-span-6">
-          <UserStatisticsWidget />
-        </motion.div>
-        <motion.div variants={staggerItem} className="xl:col-span-6">
-          <OperationalStatisticsWidget />
-        </motion.div>
-
-        <motion.div variants={staggerItem} className="xl:col-span-12">
+        {/* Primary workbench: trend + attention rail */}
+        <motion.div variants={staggerItem} className="space-y-5 xl:col-span-8">
           <GrowthAnalyticsWidget />
+          <div className="grid gap-5 lg:grid-cols-2">
+            <UserStatisticsWidget />
+            <OperationalStatisticsWidget />
+          </div>
         </motion.div>
 
+        <motion.div variants={staggerItem} className="flex flex-col gap-5 xl:col-span-4">
+          <AttentionCompaniesWidget />
+          <RecentActivityWidget />
+          <RecentCompaniesWidget />
+        </motion.div>
+
+        {/* Secondary band */}
         <motion.div variants={staggerItem} className="xl:col-span-7">
           <SubscriptionOverviewWidget />
         </motion.div>
         <motion.div variants={staggerItem} className="xl:col-span-5">
           <CompanyRankingsWidget />
-        </motion.div>
-
-        <motion.div variants={staggerItem} className="xl:col-span-6">
-          <AttentionCompaniesWidget />
-        </motion.div>
-        <motion.div variants={staggerItem} className="xl:col-span-6">
-          <RecentActivityWidget />
-        </motion.div>
-
-        <motion.div variants={staggerItem} className="xl:col-span-12">
-          <RecentCompaniesWidget />
-        </motion.div>
-
-        <motion.div variants={staggerItem} className="xl:col-span-12">
-          <QuickActionsWidget />
         </motion.div>
       </motion.div>
     </div>

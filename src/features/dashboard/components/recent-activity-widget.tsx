@@ -10,13 +10,16 @@ export function RecentActivityWidget() {
 
   return (
     <WidgetFrame
-      title="Recent activity"
-      description="Latest administrative events"
+      title="Activity"
+      description="Latest admin events"
       loading={isLoading}
       error={error instanceof Error ? error.message : null}
       onRetry={() => void refetch()}
       action={
-        <Link to="/activity" className="text-sm font-medium text-[var(--primary)] hover:underline">
+        <Link
+          to="/activity"
+          className="cursor-pointer text-xs font-medium text-[var(--primary)] hover:underline"
+        >
           View all
         </Link>
       }
@@ -24,7 +27,7 @@ export function RecentActivityWidget() {
       {items.length === 0 ? (
         <EmptyState title="No recent activity" className="border-none bg-transparent shadow-none" />
       ) : (
-        <ul className="space-y-3">
+        <ul className="divide-y divide-[var(--border)]">
           {items.map((event) => {
             const href =
               event.href ??
@@ -38,18 +41,13 @@ export function RecentActivityWidget() {
               <li key={event.id}>
                 <Link
                   to={href}
-                  className="flex items-start justify-between gap-3 rounded-xl px-2 py-1.5 transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.04]"
+                  className="flex cursor-pointer items-start justify-between gap-3 py-2.5 transition-colors first:pt-0 hover:bg-black/[0.02] dark:hover:bg-white/[0.03]"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{event.title}</p>
-                    <p className="text-xs text-[var(--muted)]">
-                      {event.actorLabel ?? 'System'}
-                      {event.targetType && event.targetId
-                        ? ` · ${event.targetType} ${event.targetId}`
-                        : ''}
-                    </p>
+                    <p className="text-xs text-[var(--muted)]">{event.actorLabel ?? 'System'}</p>
                   </div>
-                  <time className="shrink-0 text-xs text-[var(--muted)]">
+                  <time className="shrink-0 text-[11px] text-[var(--muted)]">
                     {formatDistanceToNow(new Date(event.timestamp), { addSuffix: true })}
                   </time>
                 </Link>

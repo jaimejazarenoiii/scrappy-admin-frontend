@@ -56,14 +56,11 @@ export function DashboardFilterBar() {
   }
 
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-soft">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
-            Filters
-          </p>
-          <p className="text-sm text-[var(--muted)]">Scope dashboard metrics by date and status</p>
-        </div>
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--muted)]">
+          Scope
+        </p>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleReset}>
             Reset

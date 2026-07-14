@@ -32,27 +32,33 @@ export function GrowthAnalyticsWidget() {
 
   return (
     <WidgetFrame
-      title="Growth analytics"
+      title="Growth"
       description={
         latestValue != null
-          ? `${activeSeries?.label}: ${latestValue.toLocaleString()} (latest period)`
-          : 'Trend series across six metric families'
+          ? `${activeSeries?.label} · latest ${latestValue.toLocaleString()}`
+          : 'Trend over the selected period'
       }
       loading={isLoading}
       error={error instanceof Error ? error.message : null}
       onRetry={() => void refetch()}
     >
-      <div className="mb-4 flex flex-wrap gap-2">
+      <div
+        className="mb-4 flex flex-wrap gap-1 border-b border-[var(--border)]"
+        role="tablist"
+        aria-label="Growth metric"
+      >
         {METRIC_FAMILIES.map((family) => (
           <button
             key={family.key}
             type="button"
+            role="tab"
+            aria-selected={activeKey === family.key}
             onClick={() => setActiveKey(family.key)}
             className={cn(
-              'rounded-full px-3 py-1 text-xs font-medium transition-colors',
+              'cursor-pointer px-3 py-2 text-xs font-medium transition-colors duration-200',
               activeKey === family.key
-                ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
-                : 'bg-[var(--accent)] text-[var(--accent-foreground)] hover:opacity-80',
+                ? '-mb-px border-b-2 border-[var(--primary)] text-[var(--foreground)]'
+                : 'text-[var(--muted)] hover:text-[var(--foreground)]',
             )}
           >
             {family.label}

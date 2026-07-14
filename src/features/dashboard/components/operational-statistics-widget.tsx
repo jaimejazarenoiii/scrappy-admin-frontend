@@ -1,5 +1,5 @@
 import { usePlatformStatistics } from '@/features/dashboard/hooks/use-platform-statistics'
-import { SummaryCard } from '@/shared/ui/widgets/summary-card'
+import { CompactStat } from '@/shared/ui/widgets/compact-stat'
 import { WidgetFrame } from '@/shared/ui/widgets/widget-frame'
 
 export function OperationalStatisticsWidget() {
@@ -8,45 +8,36 @@ export function OperationalStatisticsWidget() {
 
   return (
     <WidgetFrame
-      title="Operational statistics"
-      description="Aggregate platform activity — monitoring only"
+      title="Operations"
+      description="Transactions, trips, and org footprint"
       loading={isLoading}
       error={error instanceof Error ? error.message : null}
       onRetry={() => void refetch()}
     >
-      <div className="space-y-4">
+      <div className="space-y-5">
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--muted)]">
             Transactions
           </p>
-          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            <SummaryCard label="Total" value={ops?.transactions.total ?? '—'} />
-            <SummaryCard label="Today" value={ops?.transactions.today ?? '—'} />
-            <SummaryCard label="This week" value={ops?.transactions.week ?? '—'} />
-            <SummaryCard label="This month" value={ops?.transactions.month ?? '—'} />
-            <SummaryCard label="Inbound" value={ops?.transactions.inbound ?? '—'} />
-            <SummaryCard label="Outbound" value={ops?.transactions.outbound ?? '—'} />
+          <div className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3 lg:grid-cols-6">
+            <CompactStat label="Total" value={ops?.transactions.total ?? '—'} />
+            <CompactStat label="Today" value={ops?.transactions.today ?? '—'} />
+            <CompactStat label="Week" value={ops?.transactions.week ?? '—'} />
+            <CompactStat label="Month" value={ops?.transactions.month ?? '—'} />
+            <CompactStat label="Inbound" value={ops?.transactions.inbound ?? '—'} />
+            <CompactStat label="Outbound" value={ops?.transactions.outbound ?? '—'} />
           </div>
         </div>
-        <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-            Trips
+        <div className="border-t border-[var(--border)] pt-4">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--muted)]">
+            Fleet & presence
           </p>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <SummaryCard label="Total" value={ops?.trips.total ?? '—'} />
-            <SummaryCard label="Completed" value={ops?.trips.completed ?? '—'} />
-            <SummaryCard label="Active" value={ops?.trips.active ?? '—'} />
-            <SummaryCard label="Cancelled" value={ops?.trips.cancelled ?? '—'} />
+          <div className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
+            <CompactStat label="Trips" value={ops?.trips.total ?? '—'} />
+            <CompactStat label="Active trips" value={ops?.trips.active ?? '—'} tone="success" />
+            <CompactStat label="Branches" value={ops?.totalBranches ?? '—'} />
+            <CompactStat label="Vehicles" value={ops?.totalVehicles ?? '—'} />
           </div>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <SummaryCard
-            label="Total expenses"
-            value={ops?.totalExpenses?.toLocaleString() ?? '—'}
-          />
-          <SummaryCard label="Branches" value={ops?.totalBranches ?? '—'} />
-          <SummaryCard label="Warehouses" value={ops?.totalWarehouses ?? '—'} />
-          <SummaryCard label="Vehicles" value={ops?.totalVehicles ?? '—'} />
         </div>
       </div>
     </WidgetFrame>

@@ -22,13 +22,16 @@ export function RecentCompaniesWidget() {
 
   return (
     <WidgetFrame
-      title="Recent companies"
-      description="Latest registrations from summary preview"
+      title="New companies"
+      description="Recent registrations"
       loading={isLoading}
       error={error instanceof Error ? error.message : null}
       onRetry={() => void refetch()}
       action={
-        <Link to="/companies" className="text-sm font-medium text-[var(--primary)] hover:underline">
+        <Link
+          to="/companies"
+          className="cursor-pointer text-xs font-medium text-[var(--primary)] hover:underline"
+        >
           View all
         </Link>
       }
@@ -36,12 +39,12 @@ export function RecentCompaniesWidget() {
       {items.length === 0 ? (
         <EmptyState title="No recent companies" className="border-none bg-transparent shadow-none" />
       ) : (
-        <ul className="space-y-2">
+        <ul className="divide-y divide-[var(--border)]">
           {items.map((company) => (
             <li key={company.companyId}>
               <Link
                 to={`/companies/${company.companyId}`}
-                className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.04]"
+                className="flex cursor-pointer items-center justify-between gap-3 py-2.5 transition-colors first:pt-0 hover:bg-black/[0.02] dark:hover:bg-white/[0.03]"
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{company.name}</p>

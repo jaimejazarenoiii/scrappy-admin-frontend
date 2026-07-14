@@ -1,6 +1,5 @@
-import { Lock, UserCheck, UserMinus, Users, UserX } from 'lucide-react'
 import { usePlatformStatistics } from '@/features/dashboard/hooks/use-platform-statistics'
-import { SummaryCard } from '@/shared/ui/widgets/summary-card'
+import { CompactStat } from '@/shared/ui/widgets/compact-stat'
 import { WidgetFrame } from '@/shared/ui/widgets/widget-frame'
 
 export function UserStatisticsWidget() {
@@ -9,25 +8,21 @@ export function UserStatisticsWidget() {
 
   return (
     <WidgetFrame
-      title="User statistics"
-      description="Platform user counts and role distribution"
+      title="Users"
+      description="Role mix and account health"
       loading={isLoading}
       error={error instanceof Error ? error.message : null}
       onRetry={() => void refetch()}
     >
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard label="Total users" value={users?.totalUsers ?? '—'} icon={<Users className="h-5 w-5" />} />
-        <SummaryCard label="Owners" value={users?.owners ?? '—'} icon={<UserCheck className="h-5 w-5" />} />
-        <SummaryCard label="Managers" value={users?.managers ?? '—'} icon={<Users className="h-5 w-5" />} />
-        <SummaryCard label="Employees" value={users?.employees ?? '—'} icon={<Users className="h-5 w-5" />} />
-        <SummaryCard label="Active" value={users?.activeUsers ?? '—'} icon={<UserCheck className="h-5 w-5" />} />
-        <SummaryCard label="Inactive" value={users?.inactiveUsers ?? '—'} icon={<UserMinus className="h-5 w-5" />} />
-        <SummaryCard label="Locked" value={users?.lockedUsers ?? '—'} icon={<Lock className="h-5 w-5" />} />
-        <SummaryCard
-          label="New this month"
-          value={users?.newUsersThisMonth ?? '—'}
-          icon={<UserX className="h-5 w-5" />}
-        />
+      <div className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
+        <CompactStat label="Total" value={users?.totalUsers ?? '—'} />
+        <CompactStat label="Owners" value={users?.owners ?? '—'} />
+        <CompactStat label="Managers" value={users?.managers ?? '—'} />
+        <CompactStat label="Employees" value={users?.employees ?? '—'} />
+        <CompactStat label="Active" value={users?.activeUsers ?? '—'} tone="success" />
+        <CompactStat label="Inactive" value={users?.inactiveUsers ?? '—'} />
+        <CompactStat label="Locked" value={users?.lockedUsers ?? '—'} tone="danger" />
+        <CompactStat label="New month" value={users?.newUsersThisMonth ?? '—'} />
       </div>
     </WidgetFrame>
   )

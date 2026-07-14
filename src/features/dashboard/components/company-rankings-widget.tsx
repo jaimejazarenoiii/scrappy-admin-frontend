@@ -17,39 +17,44 @@ export function CompanyRankingsWidget() {
 
   return (
     <WidgetFrame
-      title="Company rankings"
-      description="Five ranking lists with admin deep-links"
+      title="Rankings"
+      description="Top companies by activity signals"
       loading={isLoading}
       error={error instanceof Error ? error.message : null}
       onRetry={() => void refetch()}
       action={
-        <Link to="/companies" className="text-sm font-medium text-[var(--primary)] hover:underline">
+        <Link
+          to="/companies"
+          className="cursor-pointer text-xs font-medium text-[var(--primary)] hover:underline"
+        >
           View all
         </Link>
       }
     >
-      <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
-        {RANKING_SECTIONS.map((section) => {
+      <div className="space-y-5">
+        {RANKING_SECTIONS.slice(0, 3).map((section) => {
           const items = (data?.[section.key] ?? []) as CompanyRankItem[]
           const chartData = items.map((item) => ({ name: item.name, score: item.value }))
 
           return (
-            <div key={section.key} className="space-y-3">
-              <p className="text-sm font-semibold">{section.title}</p>
+            <div key={section.key} className="space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--muted)]">
+                {section.title}
+              </p>
               {items.length === 0 ? (
                 <p className="text-sm text-[var(--muted)]">No data</p>
               ) : (
                 <>
-                  <RankingsBarChart data={chartData} className="!h-[180px]" />
-                  <ul className="space-y-1">
-                    {items.map((item) => (
+                  <RankingsBarChart data={chartData} className="!h-[140px]" />
+                  <ul className="divide-y divide-[var(--border)]">
+                    {items.slice(0, 5).map((item) => (
                       <li key={item.companyId}>
                         <Link
                           to={`/companies/${item.companyId}`}
-                          className="flex items-center justify-between rounded-lg px-2 py-1 text-sm transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.04]"
+                          className="flex cursor-pointer items-center justify-between gap-2 py-1.5 text-sm transition-colors hover:text-[var(--primary)]"
                         >
                           <span className="truncate font-medium">{item.name}</span>
-                          <span className="font-mono-value text-xs text-[var(--muted)]">
+                          <span className="font-mono-value text-xs tabular-nums text-[var(--muted)]">
                             {item.value.toLocaleString()}
                           </span>
                         </Link>

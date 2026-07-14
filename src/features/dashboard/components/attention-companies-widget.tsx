@@ -27,13 +27,16 @@ export function AttentionCompaniesWidget() {
 
   return (
     <WidgetFrame
-      title="Companies requiring attention"
-      description="Flagged companies with reason badges"
+      title="Needs attention"
+      description="Companies flagged for follow-up"
       loading={isLoading}
       error={error instanceof Error ? error.message : null}
       onRetry={() => void refetch()}
       action={
-        <Link to="/companies" className="text-sm font-medium text-[var(--primary)] hover:underline">
+        <Link
+          to="/companies"
+          className="cursor-pointer text-xs font-medium text-[var(--primary)] hover:underline"
+        >
           View all
         </Link>
       }
@@ -45,15 +48,15 @@ export function AttentionCompaniesWidget() {
           className="border-none bg-transparent shadow-none"
         />
       ) : (
-        <ul className="space-y-3">
+        <ul className="divide-y divide-[var(--border)]">
           {items.map((company) => (
             <li key={company.companyId}>
               <Link
                 to={`/companies/${company.companyId}`}
-                className="block rounded-xl border border-[var(--border)] px-3 py-2.5 transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.04]"
+                className="block cursor-pointer py-3 transition-colors first:pt-0 hover:bg-black/[0.02] dark:hover:bg-white/[0.03]"
               >
                 <p className="text-sm font-medium">{company.name}</p>
-                <div className="mt-2 flex flex-wrap gap-1.5">
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {company.reasons.map((reason) => (
                     <Badge key={reason} variant={REASON_VARIANTS[reason]}>
                       {REASON_LABELS[reason]}

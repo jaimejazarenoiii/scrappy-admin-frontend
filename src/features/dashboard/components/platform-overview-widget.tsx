@@ -1,25 +1,16 @@
-import {
-  AlertTriangle,
-  Building2,
-  Clock,
-  PauseCircle,
-  Sparkles,
-  TrendingUp,
-  XCircle,
-} from 'lucide-react'
 import { useDashboardSummary } from '@/features/dashboard/hooks/use-dashboard-summary'
-import { SummaryCard } from '@/shared/ui/widgets/summary-card'
+import { MetricStrip } from '@/shared/ui/widgets/metric-strip'
 
 export function PlatformOverviewWidget() {
   const { data, isLoading, error, refetch } = useDashboardSummary()
 
   if (error) {
     return (
-      <div className="rounded-2xl border border-[var(--destructive)]/20 bg-[var(--destructive)]/5 p-6 text-center">
+      <div className="rounded-xl border border-[var(--destructive)]/20 bg-[var(--destructive)]/5 px-5 py-4 text-center">
         <p className="text-sm">{error instanceof Error ? error.message : 'Failed to load overview'}</p>
         <button
           type="button"
-          className="mt-2 text-sm font-medium text-[var(--primary)]"
+          className="mt-2 cursor-pointer text-sm font-medium text-[var(--primary)] hover:underline"
           onClick={() => void refetch()}
         >
           Retry
@@ -29,56 +20,46 @@ export function PlatformOverviewWidget() {
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
-      <SummaryCard
-        label="Total companies"
-        value={data?.total ?? '—'}
-        icon={<Building2 className="h-5 w-5" />}
-        loading={isLoading}
-      />
-      <SummaryCard
-        label="Active"
-        value={data?.active ?? '—'}
-        icon={<TrendingUp className="h-5 w-5" />}
-        loading={isLoading}
-      />
-      <SummaryCard
-        label="Trial"
-        value={data?.trial ?? '—'}
-        icon={<Sparkles className="h-5 w-5" />}
-        loading={isLoading}
-      />
-      <SummaryCard
-        label="Grace period"
-        value={data?.gracePeriod ?? '—'}
-        icon={<Clock className="h-5 w-5" />}
-        loading={isLoading}
-      />
-      <SummaryCard
-        label="Expired"
-        value={data?.expired ?? '—'}
-        icon={<XCircle className="h-5 w-5" />}
-        loading={isLoading}
-      />
-      <SummaryCard
-        label="Suspended"
-        value={data?.suspended ?? '—'}
-        icon={<PauseCircle className="h-5 w-5" />}
-        loading={isLoading}
-      />
-      <SummaryCard
-        label="New today"
-        value={data?.newCompaniesToday ?? '—'}
-        icon={<Sparkles className="h-5 w-5" />}
-        loading={isLoading}
-      />
-      <SummaryCard
-        label="New this month"
-        value={data?.newCompaniesThisMonth ?? '—'}
-        delta="Company registrations"
-        icon={<AlertTriangle className="h-5 w-5" />}
-        loading={isLoading}
-      />
-    </div>
+    <MetricStrip
+      loading={isLoading}
+      items={[
+        { key: 'total', label: 'Companies', value: data?.total ?? '—' },
+        {
+          key: 'active',
+          label: 'Active',
+          value: data?.active ?? '—',
+          tone: 'success',
+        },
+        { key: 'trial', label: 'Trial', value: data?.trial ?? '—' },
+        {
+          key: 'grace',
+          label: 'Grace',
+          value: data?.gracePeriod ?? '—',
+          tone: 'warning',
+        },
+        {
+          key: 'expired',
+          label: 'Expired',
+          value: data?.expired ?? '—',
+          tone: 'danger',
+        },
+        {
+          key: 'suspended',
+          label: 'Suspended',
+          value: data?.suspended ?? '—',
+          tone: 'danger',
+        },
+        {
+          key: 'today',
+          label: 'New today',
+          value: data?.newCompaniesToday ?? '—',
+        },
+        {
+          key: 'month',
+          label: 'New this month',
+          value: data?.newCompaniesThisMonth ?? '—',
+        },
+      ]}
+    />
   )
 }
