@@ -112,6 +112,20 @@ export function SubscriptionForm({
           />
         </div>
 
+        <FormField
+          control={form.control}
+          name="notes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Notes</FormLabel>
+              <FormControl>
+                <Input placeholder="Optional admin notes" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <div className="flex gap-2 pt-1">
           <Button type="submit" disabled={loading}>
             {loading ? 'Saving…' : submitLabel}

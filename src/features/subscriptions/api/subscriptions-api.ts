@@ -19,20 +19,24 @@ function asSubscriptionArray(
 }
 
 function normalizeSubscription(
-  row: Partial<Subscription> & { id: string; companyId: string; planName?: string },
+  row: Partial<Subscription> & { id: string; companyId: string; planName?: string; notes?: string | null },
 ): Subscription {
-  const planName = row.planName ?? row.planCode ?? '—'
+  const planName = row.planName ?? row.planCode ?? ''
+  const isStatusOnly = Boolean(row.isStatusOnly) || String(row.id).startsWith('status-')
   return {
     id: row.id,
     companyId: row.companyId,
     companyName: row.companyName ?? 'Company',
     planName,
     planCode: row.planCode ?? planName,
-    status: row.status ?? 'TRIAL',
-    startsAt: row.startsAt ?? new Date(0).toISOString(),
-    endsAt: row.endsAt ?? new Date(0).toISOString(),
+    status: row.status ?? 'PENDING',
+    startsAt: row.startsAt ?? '',
+    endsAt: row.endsAt ?? '',
     renewedAt: row.renewedAt ?? null,
     suspendedAt: row.suspendedAt ?? null,
+    notes: row.notes ?? null,
+    companyStatus: row.companyStatus ?? null,
+    isStatusOnly,
   }
 }
 
@@ -93,17 +97,21 @@ export async function listSubscriptions(
             companyId: company.id,
             companyName: company.name,
             status: status.subscriptionStatus,
-            startsAt: company.createdAt ?? company.registeredAt,
-            endsAt: company.createdAt ?? company.registeredAt,
+            planName: '',
+            startsAt: '',
+            endsAt: '',
+            isStatusOnly: true,
           })
         } catch {
           return normalizeSubscription({
             id: `status-${company.id}`,
             companyId: company.id,
             companyName: company.name,
-            status: company.subscriptionStatus ?? 'TRIAL',
-            startsAt: company.createdAt ?? company.registeredAt,
-            endsAt: company.createdAt ?? company.registeredAt,
+            status: company.subscriptionStatus ?? 'PENDING',
+            planName: '',
+            startsAt: '',
+            endsAt: '',
+            isStatusOnly: true,
           })
         }
       }),
@@ -204,6 +212,7 @@ export async function createSubscription(payload: {
   status: string
   startsAt: string
   endsAt: string
+  notes?: string
 }): Promise<Subscription> {
   if (env.useMock) {
     const sub = await callMock(() =>
@@ -216,7 +225,11 @@ export async function createSubscription(payload: {
         endsAt: payload.endsAt,
       }),
     )
-    return normalizeSubscription({ ...sub, planName: sub.planName ?? sub.planCode })
+    return normalizeSubscription({
+      ...sub,
+      planName: sub.planName ?? sub.planCode,
+      notes: payload.notes ?? null,
+    })
   }
   const { data } = await apiClient.post<Subscription>(
     `/admin/companies/${payload.companyId}/subscriptions`,
@@ -225,6 +238,7 @@ export async function createSubscription(payload: {
       status: payload.status,
       startsAt: payload.startsAt,
       endsAt: payload.endsAt,
+      ...(payload.notes ? { notes: payload.notes } : {}),
     },
   )
   return normalizeSubscription({
@@ -232,6 +246,40 @@ export async function createSubscription(payload: {
     companyId: payload.companyId,
     id: data.id,
   })
+}
+
+export async function updateSubscription(
+  companyId: string,
+  subscriptionId: string,
+  payload: {
+    planName?: string
+    startsAt?: string
+    endsAt?: string
+    status?: string
+    notes?: string | null
+    companyStatus?: string
+  },
+): Promise<Subscription> {
+  if (env.useMock) {
+    const sub = await callMock(() => mockHandlers.getSubscription(subscriptionId))
+    if (payload.planName) {
+      sub.planName = payload.planName
+      sub.planCode = payload.planName
+    }
+    if (payload.startsAt) sub.startsAt = payload.startsAt
+    if (payload.endsAt) sub.endsAt = payload.endsAt
+    if (payload.status) sub.status = payload.status
+    return normalizeSubscription({
+      ...sub,
+      planName: sub.planName ?? sub.planCode,
+      notes: payload.notes ?? null,
+    })
+  }
+  const { data } = await apiClient.patch<Subscription>(
+    `/admin/companies/${companyId}/subscriptions/${subscriptionId}`,
+    payload,
+  )
+  return normalizeSubscription({ ...data, companyId: data.companyId ?? companyId })
 }
 
 export async function renewSubscription(

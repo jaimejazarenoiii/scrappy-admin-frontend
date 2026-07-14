@@ -33,6 +33,19 @@ export interface Subscription {
   endsAt: string
   renewedAt: string | null
   suspendedAt: string | null
+  notes?: string | null
+  companyStatus?: string | null
+  /** True when this row is entitlement-only (no real subscription period id). */
+  isStatusOnly?: boolean
+}
+
+export interface SubscriptionUpdateInput {
+  planName?: string
+  startsAt?: string
+  endsAt?: string
+  status?: SubscriptionPeriodStatus
+  notes?: string | null
+  companyStatus?: string
 }
 
 export interface SubscriptionCreateInput {
@@ -41,6 +54,7 @@ export interface SubscriptionCreateInput {
   status: SubscriptionPeriodStatus
   startsAt: string
   endsAt: string
+  notes?: string
 }
 
 export function planLabel(subscription: Pick<Subscription, 'planName' | 'planCode'>): string {

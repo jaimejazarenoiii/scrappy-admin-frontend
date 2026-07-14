@@ -15,8 +15,8 @@ Login: `POST /admin/auth/login` with a `SUPER_ADMIN` account (`pnpm run db:creat
 | Area | Endpoints |
 |------|-----------|
 | Auth | `/admin/auth/login`, `/auth/refresh`, `/auth/logout`, `/users/me` |
-| Companies | `GET/POST /admin/companies`, `GET /admin/companies/{id}`, `POST …/accounts` |
-| Subscriptions | Company-scoped create / list / detail / renew / suspend / expire / subscription-status |
+| Companies | `GET/POST /admin/companies`, `GET /admin/companies/{id}`, `GET/POST …/accounts`, `POST …/accounts/{userId}/password-reset` |
+| Subscriptions | Company-scoped create / list / detail / PATCH / renew / suspend / expire / subscription-status |
 | Dashboard | `GET /admin/analytics/overview` (+ company analytics for stats panel) |
 
 ## Mock-only (hidden from nav when `VITE_USE_MOCK=false`)

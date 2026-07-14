@@ -64,10 +64,13 @@ export function CompanySubscriptionsPanel({ companyId }: CompanySubscriptionsPan
                     to={`/subscriptions/${sub.id}?companyId=${companyId}`}
                     className="font-medium text-[var(--primary)] hover:underline"
                   >
-                    {sub.planName || sub.planCode}
+                    {sub.planName || sub.planCode || 'None'}
                   </Link>
                   <p className="text-xs text-[var(--muted)]">
-                    Ends {new Date(sub.endsAt).toLocaleDateString()}
+                    Ends{' '}
+                    {sub.endsAt && !Number.isNaN(new Date(sub.endsAt).getTime())
+                      ? new Date(sub.endsAt).toLocaleDateString()
+                      : 'None'}
                   </p>
                 </div>
                 <StatusBadge status={String(sub.status)} />

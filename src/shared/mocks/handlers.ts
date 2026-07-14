@@ -748,6 +748,7 @@ export async function mockCreateCompanyAccount(
     locked: false,
     lastLoginAt: null,
     role: payload.account.role,
+    passwordChangeRequired: false,
   }
   mockCompanyOwners.unshift(owner)
   recordCompanyAudit(companyId, 'admin.account_created', `Created ${payload.account.role} ${owner.email}`)
@@ -764,6 +765,53 @@ export async function mockCreateCompanyAccount(
       role: payload.account.role,
       status: 'ACTIVE',
     },
+    linkedUser: {
+      id: owner.id,
+      email: owner.email,
+      role: payload.account.role,
+      status: 'ACTIVE',
+    },
+  }
+}
+
+export async function mockListCompanyAccounts(companyId: string) {
+  await delay()
+  await mockGetCompany(companyId)
+  return mockCompanyOwners
+    .filter((owner) => owner.companyId === companyId)
+    .map((owner) => {
+      const [firstName, ...rest] = (owner.name || '').split(' ')
+      return {
+        userId: owner.id,
+        employeeId: null as string | null,
+        email: owner.email,
+        role: owner.role ?? 'OWNER',
+        status: owner.status === 'active' ? 'ACTIVE' : 'INACTIVE',
+        firstName: firstName || null,
+        lastName: rest.join(' ') || null,
+        passwordChangeRequired: Boolean(owner.passwordChangeRequired),
+        lastLoginAt: owner.lastLoginAt,
+      }
+    })
+}
+
+export async function mockResetCompanyAccountPassword(
+  companyId: string,
+  userId: string,
+  temporaryPassword: string,
+) {
+  await delay()
+  if (temporaryPassword.trim().length < 8) {
+    throw { code: 'VALIDATION_ERROR', message: 'Temporary password must be at least 8 characters', status: 400 }
+  }
+  const owner = mockCompanyOwners.find((item) => item.id === userId && item.companyId === companyId)
+  if (!owner) throw { code: 'NOT_FOUND', message: 'Account not found', status: 404 }
+  ;(owner).passwordChangeRequired = true
+  recordCompanyAudit(companyId, 'user.password_admin_reset', `Password reset for ${owner.email}`)
+  return {
+    userId: owner.id,
+    employeeId: null as string | null,
+    passwordChangeRequired: true as const,
   }
 }
 
@@ -1177,6 +1225,8 @@ export const mockHandlers = {
   activateCompany: mockActivateCompany,
   deactivateCompany: mockDeactivateCompany,
   createCompanyAccount: mockCreateCompanyAccount,
+  listCompanyAccounts: mockListCompanyAccounts,
+  resetCompanyAccountPassword: mockResetCompanyAccountPassword,
   createOwner: mockCreateOwner,
   getOwner: mockGetOwner,
   updateOwner: mockUpdateOwner,

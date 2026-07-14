@@ -10,6 +10,7 @@ export const pmKeys = {
     timeline: (id: string, params?: unknown) => ['pm', 'companies', 'timeline', id, params] as const,
     notes: (id: string) => ['pm', 'companies', 'notes', id] as const,
     owners: (id: string, params?: unknown) => ['pm', 'companies', 'owners', id, params] as const,
+    accounts: (id: string) => ['pm', 'companies', 'accounts', id] as const,
     subscriptions: (id: string) => ['pm', 'companies', 'subscriptions', id] as const,
   },
   owners: {

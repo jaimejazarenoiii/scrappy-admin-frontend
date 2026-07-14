@@ -26,6 +26,7 @@ export function SubscriptionCreatePage() {
         status: values.status,
         startsAt: toApiDateTime(values.startsAt),
         endsAt: toApiDateTime(values.endsAt, true),
+        notes: values.notes?.trim() || undefined,
       }),
     onSuccess: (sub) => {
       void queryClient.invalidateQueries({ queryKey: ['pm', 'subscriptions'] })

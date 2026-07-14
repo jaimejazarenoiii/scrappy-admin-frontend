@@ -7,6 +7,7 @@ export const subscriptionFormSchema = z
     status: z.enum(SUBSCRIPTION_PERIOD_STATUS_OPTIONS),
     startsAt: z.string().min(1, 'Start date is required'),
     endsAt: z.string().min(1, 'End date is required'),
+    notes: z.string().trim().max(2000).optional().or(z.literal('')),
   })
   .refine((values) => !Number.isNaN(Date.parse(values.startsAt)), {
     message: 'Enter a valid start date',
@@ -54,6 +55,7 @@ export function defaultSubscriptionFormValues(
     status: 'ACTIVE',
     startsAt: start.toISOString().slice(0, 10),
     endsAt: end.toISOString().slice(0, 10),
+    notes: '',
     ...overrides,
   }
 }

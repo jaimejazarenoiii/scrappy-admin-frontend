@@ -59,6 +59,8 @@ export interface MockCompanyOwner {
   status: 'active' | 'inactive'
   locked: boolean
   lastLoginAt: string | null
+  role?: string
+  passwordChangeRequired?: boolean
 }
 
 export interface MockAdministrativeNote {

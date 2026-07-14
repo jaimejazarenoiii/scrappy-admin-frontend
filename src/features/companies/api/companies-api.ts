@@ -5,7 +5,9 @@ import type {
   AdministrativeNote,
   AdministrativeTimelineEvent,
   Company,
+  CompanyAccount,
   CompanyAccountCreateInput,
+  CompanyAccountPasswordResetResult,
   CompanyCreateInput,
   CompanyOwner,
   CompanyStatistics,
@@ -68,6 +70,29 @@ export async function createCompanyAccount(
 ): Promise<unknown> {
   if (env.useMock) return callMock(() => mockHandlers.createCompanyAccount(companyId, payload))
   const { data } = await apiClient.post(`/admin/companies/${companyId}/accounts`, payload)
+  return data
+}
+
+export async function listCompanyAccounts(companyId: string): Promise<CompanyAccount[]> {
+  if (env.useMock) return callMock(() => mockHandlers.listCompanyAccounts(companyId))
+  const { data } = await apiClient.get<CompanyAccount[]>(`/admin/companies/${companyId}/accounts`)
+  return Array.isArray(data) ? data : []
+}
+
+export async function resetCompanyAccountPassword(
+  companyId: string,
+  userId: string,
+  temporaryPassword: string,
+): Promise<CompanyAccountPasswordResetResult> {
+  if (env.useMock) {
+    return callMock(() =>
+      mockHandlers.resetCompanyAccountPassword(companyId, userId, temporaryPassword),
+    )
+  }
+  const { data } = await apiClient.post<CompanyAccountPasswordResetResult>(
+    `/admin/companies/${companyId}/accounts/${userId}/password-reset`,
+    { temporaryPassword },
+  )
   return data
 }
 

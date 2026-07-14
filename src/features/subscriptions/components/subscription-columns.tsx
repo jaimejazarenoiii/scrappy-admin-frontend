@@ -5,11 +5,11 @@ import { planLabel, type Subscription } from '@/features/subscriptions/types'
 import { Badge } from '@/shared/ui/badge'
 import { StatusBadge } from '@/shared/ui/management/status-badge'
 
-function subscriptionHref(row: Subscription): string {
-  if (row.id.startsWith('status-')) {
-    return `/companies/${row.companyId}`
-  }
-  return `/subscriptions/${row.id}?companyId=${row.companyId}`
+function formatDate(value?: string | null): string {
+  if (!value) return 'None'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'None'
+  return format(date, 'MMM d, yyyy')
 }
 
 export const subscriptionColumns: ColumnDef<Subscription>[] = [
@@ -18,34 +18,42 @@ export const subscriptionColumns: ColumnDef<Subscription>[] = [
     header: 'Company',
     cell: ({ row }) => (
       <Link
-        to={subscriptionHref(row.original)}
+        to={`/companies/${row.original.companyId}`}
         className="font-medium text-[var(--primary)] hover:underline"
       >
-        {row.original.companyName}
+        {row.original.companyName || 'None'}
       </Link>
     ),
   },
   {
     accessorKey: 'planName',
-    header: 'Plan',
-    cell: ({ row }) => <Badge variant="default">{planLabel(row.original)}</Badge>,
+    header: 'Plan / period',
+    cell: ({ row }) => {
+      const sub = row.original
+      if (sub.isStatusOnly || !sub.id || sub.id.startsWith('status-')) {
+        return <span className="text-sm text-[var(--muted)]">None</span>
+      }
+      const label = planLabel(sub) || 'Untitled'
+      return (
+        <Link
+          to={`/subscriptions/${sub.id}?companyId=${sub.companyId}`}
+          className="font-medium text-[var(--primary)] hover:underline"
+        >
+          <Badge variant="default">{label}</Badge>
+        </Link>
+      )
+    },
   },
   {
     accessorKey: 'status',
     header: 'Status',
-    cell: ({ row }) => <StatusBadge status={String(row.original.status)} />,
+    cell: ({ row }) => <StatusBadge status={String(row.original.status || 'None')} />,
   },
   {
     accessorKey: 'endsAt',
     header: 'Ends',
-    cell: ({ row }) => {
-      const endsAt = row.original.endsAt
-      const invalid = !endsAt || endsAt === new Date(0).toISOString()
-      return (
-        <span className="text-[var(--muted)]">
-          {invalid ? '—' : format(new Date(endsAt), 'MMM d, yyyy')}
-        </span>
-      )
-    },
+    cell: ({ row }) => (
+      <span className="text-[var(--muted)]">{formatDate(row.original.endsAt)}</span>
+    ),
   },
 ]

@@ -62,6 +62,24 @@ export interface CompanyAccountCreateInput {
   }
 }
 
+export interface CompanyAccount {
+  userId: string
+  employeeId: string | null
+  email: string
+  role: 'OWNER' | 'MANAGER' | 'EMPLOYEE' | string
+  status: 'ACTIVE' | 'INACTIVE' | string
+  firstName: string | null
+  lastName: string | null
+  passwordChangeRequired: boolean
+  lastLoginAt: string | null
+}
+
+export interface CompanyAccountPasswordResetResult {
+  userId: string
+  employeeId: string | null
+  passwordChangeRequired: true
+}
+
 export interface CompanyStatistics {
   companyId: string
   transactionVolume: number
