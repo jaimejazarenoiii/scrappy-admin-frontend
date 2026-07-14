@@ -8,13 +8,10 @@ import { BrowserRouter } from 'react-router-dom'
 
 function AuthHydrator({ children }: { children: React.ReactNode }) {
   const hydrateSession = useAuthStore((state) => state.hydrateSession)
-  const hydrated = useAuthStore((state) => state.hydrated)
 
   useEffect(() => {
-    if (!hydrated) {
-      void hydrateSession()
-    }
-  }, [hydrateSession, hydrated])
+    void hydrateSession()
+  }, [hydrateSession])
 
   return <>{children}</>
 }

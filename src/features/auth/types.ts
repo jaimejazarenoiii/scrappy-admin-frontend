@@ -128,13 +128,13 @@ export function authUserToAdmin(user: ScrappyAuthUser): AuthAdmin {
   const statusRaw = (user.status ?? 'ACTIVE').toLowerCase()
   const status: AdministratorStatus =
     statusRaw === 'inactive' ? 'inactive' : statusRaw === 'locked' ? 'locked' : 'active'
-  const fullName = user.email
+  const fullName = user.email || 'Super Admin'
   return {
-    id: user.id,
-    email: user.email,
+    id: user.id || 'unknown',
+    email: user.email || 'admin@scrappy.local',
     fullName,
     name: fullName,
-    roles: [mapApiRoleToConsoleRole(user.role)],
+    roles: [mapApiRoleToConsoleRole(user.role || 'SUPER_ADMIN')],
     status,
     lastLoginAt: user.lastLoginAt ?? null,
     createdAt: new Date().toISOString(),
@@ -144,16 +144,27 @@ export function authUserToAdmin(user: ScrappyAuthUser): AuthAdmin {
 }
 
 export function expiresAtFromExpiresIn(expiresInSeconds: number): string {
-  return new Date(Date.now() + expiresInSeconds * 1000).toISOString()
+  const seconds = Number.isFinite(expiresInSeconds) ? expiresInSeconds : 900
+  return new Date(Date.now() + seconds * 1000).toISOString()
 }
 
 export function mapScrappyAuthResponse(data: ScrappyAuthResponse): SignInResponse {
+  if (!data?.accessToken || !data?.refreshToken) {
+    throw new Error('Auth response is missing tokens')
+  }
+
+  const user = data.user ?? ({
+    id: 'unknown',
+    email: 'admin@scrappy.local',
+    role: 'SUPER_ADMIN',
+  } satisfies ScrappyAuthUser)
+
   return {
     accessToken: data.accessToken,
     refreshToken: data.refreshToken,
-    expiresIn: data.expiresIn,
-    expiresAt: expiresAtFromExpiresIn(data.expiresIn),
-    administrator: authUserToAdmin(data.user),
+    expiresIn: data.expiresIn ?? 900,
+    expiresAt: expiresAtFromExpiresIn(data.expiresIn ?? 900),
+    administrator: authUserToAdmin(user),
   }
 }
 

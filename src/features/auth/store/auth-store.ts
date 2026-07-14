@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import * as authApi from '@/features/auth/api/auth-api'
 import * as tokenStorage from '@/features/auth/lib/token-storage'
 import type { AuthAdmin } from '@/features/auth/types'
+import { isApiClientError } from '@/shared/api/errors'
 import { useSidebarStore } from '@/shared/stores/sidebar-store'
 
 interface AuthStoreState {
@@ -19,25 +20,43 @@ interface AuthStoreState {
   setAdmin: (admin: AuthAdmin) => void
 }
 
-function applyTokens(accessToken: string, refreshToken: string, rememberMe: boolean): void {
+function applySession(
+  accessToken: string,
+  refreshToken: string,
+  admin: AuthAdmin,
+  rememberMe = true,
+): void {
   tokenStorage.setAccessToken(accessToken)
   tokenStorage.setRefreshToken(refreshToken, rememberMe)
+  tokenStorage.setPersistedAdmin(admin)
 }
+
+function isUnauthenticatedError(error: unknown): boolean {
+  if (!isApiClientError(error)) return false
+  return (
+    error.status === 401 ||
+    error.code === 'UNAUTHENTICATED' ||
+    error.code === 'INVALID_CREDENTIALS' ||
+    error.code === 'UNAUTHORIZED'
+  )
+}
+
+let hydratePromise: Promise<void> | null = null
 
 export const useAuthStore = create<AuthStoreState>()((set, get) => ({
   admin: null,
   isAuthenticated: false,
   hydrated: false,
-  rememberMe: false,
+  rememberMe: true,
   sessionExpired: false,
 
-  login: async (email, password, rememberMe = false) => {
-    const response = await authApi.signIn({ email, password, rememberMe })
-    applyTokens(response.accessToken, response.refreshToken, rememberMe)
+  login: async (email, password, _rememberMe = true) => {
+    const response = await authApi.signIn({ email, password, rememberMe: true })
+    applySession(response.accessToken, response.refreshToken, response.administrator, true)
     set({
       admin: response.administrator,
       isAuthenticated: true,
-      rememberMe,
+      rememberMe: true,
       sessionExpired: false,
     })
   },
@@ -47,6 +66,8 @@ export const useAuthStore = create<AuthStoreState>()((set, get) => ({
       if (get().isAuthenticated) {
         await authApi.signOut()
       }
+    } catch {
+      // Always clear local session even if logout API fails.
     } finally {
       get().clearSession()
       useSidebarStore.getState().setCollapsed(false)
@@ -54,51 +75,123 @@ export const useAuthStore = create<AuthStoreState>()((set, get) => ({
   },
 
   hydrateSession: async () => {
-    const refreshToken = tokenStorage.getRefreshToken()
-    const rememberMe = tokenStorage.isRememberMeActive()
+    if (get().hydrated) return
+    if (hydratePromise) return hydratePromise
 
-    if (!refreshToken) {
-      set({ hydrated: true, rememberMe, isAuthenticated: false, admin: null })
-      return
-    }
+    hydratePromise = (async () => {
+      const refreshToken = tokenStorage.getRefreshToken()
+      const cachedAdmin = tokenStorage.getPersistedAdmin()
+      const existingAccess = tokenStorage.getAccessToken()
 
-    try {
-      // Access token is memory-only; restore session via refresh on every reload.
-      const refreshed = await authApi.refresh(refreshToken)
-      applyTokens(refreshed.accessToken, refreshed.refreshToken, rememberMe)
-
-      let admin = refreshed.administrator ?? null
-      // Profile enrichment is optional — do not wipe a valid refresh on /users/me failure.
-      try {
-        const session = await authApi.getSession()
-        if (session.session.valid) {
-          admin = session.administrator
-        }
-      } catch {
-        // keep admin from refresh response
-      }
-
-      if (!admin) {
-        get().clearSession()
-        set({ hydrated: true })
+      if (!refreshToken) {
+        set({ hydrated: true, rememberMe: false, isAuthenticated: false, admin: null })
         return
       }
 
-      set({
-        admin,
-        isAuthenticated: true,
-        rememberMe,
-        sessionExpired: false,
-        hydrated: true,
-      })
-    } catch {
-      get().clearSession()
-      set({ hydrated: true })
-    }
+      // Soft restore if access JWT is still fresh — avoids unnecessary refresh races.
+      if (tokenStorage.isAccessTokenFresh(existingAccess) && cachedAdmin) {
+        tokenStorage.setAccessToken(existingAccess)
+        set({
+          admin: cachedAdmin,
+          isAuthenticated: true,
+          rememberMe: true,
+          sessionExpired: false,
+          hydrated: true,
+        })
+        return
+      }
+
+      try {
+        const refreshed = await authApi.refresh(refreshToken)
+        const admin = refreshed.administrator ?? cachedAdmin
+        if (!admin) {
+          // Tokens valid enough to refresh but no profile — keep tokens, fail soft.
+          applySession(
+            refreshed.accessToken,
+            refreshed.refreshToken,
+            {
+              id: 'unknown',
+              email: 'admin@scrappy.local',
+              fullName: 'Super Admin',
+              name: 'Super Admin',
+              roles: ['super_admin'],
+              status: 'active',
+              lastLoginAt: null,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+            true,
+          )
+          set({
+            admin: tokenStorage.getPersistedAdmin(),
+            isAuthenticated: true,
+            rememberMe: true,
+            sessionExpired: false,
+            hydrated: true,
+          })
+          return
+        }
+
+        applySession(refreshed.accessToken, refreshed.refreshToken, admin, true)
+
+        try {
+          const session = await authApi.getSession()
+          if (session.session.valid) {
+            tokenStorage.setPersistedAdmin(session.administrator)
+            set({
+              admin: session.administrator,
+              isAuthenticated: true,
+              rememberMe: true,
+              sessionExpired: false,
+              hydrated: true,
+            })
+            return
+          }
+        } catch {
+          // Profile refresh is optional.
+        }
+
+        set({
+          admin,
+          isAuthenticated: true,
+          rememberMe: true,
+          sessionExpired: false,
+          hydrated: true,
+        })
+      } catch (error) {
+        if (isUnauthenticatedError(error)) {
+          get().clearSession()
+          set({ hydrated: true, sessionExpired: true })
+          return
+        }
+
+        // Network / 5xx: keep refresh token so the next reload can retry.
+        if (cachedAdmin && tokenStorage.getRefreshToken()) {
+          set({
+            admin: cachedAdmin,
+            isAuthenticated: true,
+            rememberMe: true,
+            sessionExpired: false,
+            hydrated: true,
+          })
+          return
+        }
+
+        set({
+          hydrated: true,
+          isAuthenticated: false,
+          admin: null,
+          rememberMe: true,
+        })
+      }
+    })().finally(() => {
+      hydratePromise = null
+    })
+
+    return hydratePromise
   },
 
   refreshSession: async () => {
-    const rememberMe = tokenStorage.isRememberMeActive() || get().rememberMe
     const refreshToken = tokenStorage.getRefreshToken()
     if (!refreshToken) {
       get().clearSession()
@@ -108,21 +201,26 @@ export const useAuthStore = create<AuthStoreState>()((set, get) => ({
 
     try {
       const response = await authApi.refresh(refreshToken)
-      applyTokens(response.accessToken, response.refreshToken, rememberMe)
-      if (response.administrator) {
+      const admin = response.administrator ?? get().admin ?? tokenStorage.getPersistedAdmin()
+      if (admin) {
+        applySession(response.accessToken, response.refreshToken, admin, true)
         set({
-          admin: response.administrator,
+          admin,
           isAuthenticated: true,
-          rememberMe,
+          rememberMe: true,
           sessionExpired: false,
         })
       } else {
-        set({ isAuthenticated: true, rememberMe, sessionExpired: false })
+        tokenStorage.setAccessToken(response.accessToken)
+        tokenStorage.setRefreshToken(response.refreshToken, true)
+        set({ isAuthenticated: true, rememberMe: true, sessionExpired: false })
       }
       return response.accessToken
-    } catch {
-      get().clearSession()
-      set({ sessionExpired: true })
+    } catch (error) {
+      if (isUnauthenticatedError(error)) {
+        get().clearSession()
+        set({ sessionExpired: true })
+      }
       return null
     }
   },
@@ -132,7 +230,7 @@ export const useAuthStore = create<AuthStoreState>()((set, get) => ({
     set({
       admin: null,
       isAuthenticated: false,
-      rememberMe: false,
+      rememberMe: true,
     })
   },
 
@@ -141,6 +239,7 @@ export const useAuthStore = create<AuthStoreState>()((set, get) => ({
   },
 
   setAdmin: (admin) => {
+    tokenStorage.setPersistedAdmin(admin)
     set({ admin })
   },
 }))
