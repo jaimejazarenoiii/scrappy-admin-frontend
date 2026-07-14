@@ -58,23 +58,34 @@ export const useAuthStore = create<AuthStoreState>()((set, get) => ({
     const rememberMe = tokenStorage.isRememberMeActive()
 
     if (!refreshToken) {
-      set({ hydrated: true, rememberMe })
+      set({ hydrated: true, rememberMe, isAuthenticated: false, admin: null })
       return
     }
 
     try {
+      // Access token is memory-only; restore session via refresh on every reload.
       const refreshed = await authApi.refresh(refreshToken)
       applyTokens(refreshed.accessToken, refreshed.refreshToken, rememberMe)
 
-      const session = await authApi.getSession()
-      if (!session.session.valid) {
+      let admin = refreshed.administrator ?? null
+      // Profile enrichment is optional — do not wipe a valid refresh on /users/me failure.
+      try {
+        const session = await authApi.getSession()
+        if (session.session.valid) {
+          admin = session.administrator
+        }
+      } catch {
+        // keep admin from refresh response
+      }
+
+      if (!admin) {
         get().clearSession()
         set({ hydrated: true })
         return
       }
 
       set({
-        admin: session.administrator,
+        admin,
         isAuthenticated: true,
         rememberMe,
         sessionExpired: false,
@@ -87,7 +98,7 @@ export const useAuthStore = create<AuthStoreState>()((set, get) => ({
   },
 
   refreshSession: async () => {
-    const { rememberMe } = get()
+    const rememberMe = tokenStorage.isRememberMeActive() || get().rememberMe
     const refreshToken = tokenStorage.getRefreshToken()
     if (!refreshToken) {
       get().clearSession()
@@ -98,7 +109,16 @@ export const useAuthStore = create<AuthStoreState>()((set, get) => ({
     try {
       const response = await authApi.refresh(refreshToken)
       applyTokens(response.accessToken, response.refreshToken, rememberMe)
-      set({ isAuthenticated: true, sessionExpired: false })
+      if (response.administrator) {
+        set({
+          admin: response.administrator,
+          isAuthenticated: true,
+          rememberMe,
+          sessionExpired: false,
+        })
+      } else {
+        set({ isAuthenticated: true, rememberMe, sessionExpired: false })
+      }
       return response.accessToken
     } catch {
       get().clearSession()
