@@ -7,6 +7,7 @@ import { Button } from '@/shared/ui/button'
 import { DataTable } from '@/shared/ui/data-table/data-table'
 import { DataTablePagination } from '@/shared/ui/data-table/data-table-pagination'
 import { Input } from '@/shared/ui/input'
+import { Select } from '@/shared/ui/select'
 import { PageHeader } from '@/shared/ui/management/page-header'
 import { EmptyState } from '@/shared/ui/empty-state'
 
@@ -36,8 +37,8 @@ export function CompaniesListPage() {
           className="max-w-xs"
           aria-label="Search companies"
         />
-        <select
-          className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
+        <Select
+          className="max-w-[11rem]"
           value={query.status ?? ''}
           onChange={(e) => setQuery({ status: e.target.value || undefined, page: 1 })}
           aria-label="Filter by status"
@@ -47,7 +48,7 @@ export function CompaniesListPage() {
           <option value="registered">Registered</option>
           <option value="inactive">Inactive</option>
           <option value="deactivated">Deactivated</option>
-        </select>
+        </Select>
       </div>
     ),
     [query.q, query.status, setQuery],

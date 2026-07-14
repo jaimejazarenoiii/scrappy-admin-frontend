@@ -8,6 +8,7 @@ import { Button } from '@/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/shared/ui/form/form'
 import { Input } from '@/shared/ui/input'
+import { Select } from '@/shared/ui/select'
 import { showError, showSuccess } from '@/shared/ui/toast'
 import { env } from '@/shared/config/env'
 
@@ -156,14 +157,11 @@ export function CompanyAccountsPanel({ companyId }: CompanyAccountsPanelProps) {
                 <FormItem className="sm:col-span-2">
                   <FormLabel>Role</FormLabel>
                   <FormControl>
-                    <select
-                      className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
-                      {...field}
-                    >
+                    <Select {...field}>
                       <option value="OWNER">OWNER</option>
                       <option value="MANAGER">MANAGER</option>
                       <option value="EMPLOYEE">EMPLOYEE</option>
-                    </select>
+                    </Select>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

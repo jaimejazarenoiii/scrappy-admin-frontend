@@ -1,6 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
-import { SUBSCRIPTION_STATUS_OPTIONS } from '@/features/subscriptions/types'
+import {
+  PERIOD_STATUS_LABELS,
+  SUBSCRIPTION_PERIOD_STATUS_OPTIONS,
+} from '@/features/subscriptions/types'
 import {
   defaultSubscriptionFormValues,
   subscriptionFormSchema,
@@ -9,6 +12,7 @@ import {
 import { Button } from '@/shared/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/shared/ui/form/form'
 import { Input } from '@/shared/ui/input'
+import { Select } from '@/shared/ui/select'
 
 export interface SubscriptionFormProps {
   companyName?: string
@@ -18,9 +22,6 @@ export interface SubscriptionFormProps {
   onSubmit: (values: SubscriptionFormValues) => void | Promise<void>
   onCancel?: () => void
 }
-
-const selectClassName =
-  'w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]'
 
 export function SubscriptionForm({
   companyName,
@@ -64,16 +65,19 @@ export function SubscriptionForm({
           name="status"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Status</FormLabel>
+              <FormLabel>Period status</FormLabel>
               <FormControl>
-                <select className={selectClassName} {...field}>
-                  {SUBSCRIPTION_STATUS_OPTIONS.map((status) => (
+                <Select {...field}>
+                  {SUBSCRIPTION_PERIOD_STATUS_OPTIONS.map((status) => (
                     <option key={status} value={status}>
-                      {status.replace(/_/g, ' ')}
+                      {PERIOD_STATUS_LABELS[status]}
                     </option>
                   ))}
-                </select>
+                </Select>
               </FormControl>
+              <p className="text-xs text-[var(--muted)]">
+                API accepts only Pending or Active for a period. Use Pending after expire / suspend.
+              </p>
               <FormMessage />
             </FormItem>
           )}

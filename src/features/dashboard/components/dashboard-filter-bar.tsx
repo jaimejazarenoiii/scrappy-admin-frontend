@@ -4,6 +4,7 @@ import { useDashboardFilterStore } from '@/features/dashboard/store/filter-store
 import { Button } from '@/shared/ui/button'
 import { Input } from '@/shared/ui/input'
 import { Label } from '@/shared/ui/label'
+import { Select } from '@/shared/ui/select'
 
 const SUBSCRIPTION_STATUSES = [
   { value: '', label: 'All subscriptions' },
@@ -96,9 +97,8 @@ export function DashboardFilterBar() {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="filter-subscription">Subscription status</Label>
-          <select
+          <Select
             id="filter-subscription"
-            className="flex h-10 w-full rounded-xl border border-[var(--border)] bg-transparent px-3 text-sm"
             value={draft.subscriptionStatus ?? ''}
             onChange={(event) =>
               setDraft({ subscriptionStatus: event.target.value || null })
@@ -109,13 +109,12 @@ export function DashboardFilterBar() {
                 {option.label}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="filter-company-status">Company status</Label>
-          <select
+          <Select
             id="filter-company-status"
-            className="flex h-10 w-full rounded-xl border border-[var(--border)] bg-transparent px-3 text-sm"
             value={draft.companyStatus ?? ''}
             onChange={(event) => setDraft({ companyStatus: event.target.value || null })}
           >
@@ -124,7 +123,7 @@ export function DashboardFilterBar() {
                 {option.label}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="filter-company-id">Company ID</Label>

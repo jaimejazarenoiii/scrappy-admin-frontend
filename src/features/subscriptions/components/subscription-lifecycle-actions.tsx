@@ -6,7 +6,7 @@ import {
   suspendSubscription,
 } from '@/features/subscriptions/api/subscriptions-api'
 import { SubscriptionForm } from '@/features/subscriptions/components/subscription-form'
-import { planLabel, type Subscription } from '@/features/subscriptions/types'
+import { planLabel, suggestedPeriodStatus, type Subscription } from '@/features/subscriptions/types'
 import {
   toApiDateTime,
   toDateInputValue,
@@ -33,7 +33,7 @@ function renewDefaults(subscription: Subscription): Partial<SubscriptionFormValu
   end.setMonth(end.getMonth() + 1)
   return {
     planName: planLabel(subscription),
-    status: 'ACTIVE',
+    status: suggestedPeriodStatus(subscription.status),
     startsAt: start.toISOString().slice(0, 10),
     endsAt: end.toISOString().slice(0, 10),
   }

@@ -1,10 +1,10 @@
 import { z } from 'zod'
-import { SUBSCRIPTION_STATUS_OPTIONS } from '@/features/subscriptions/types'
+import { SUBSCRIPTION_PERIOD_STATUS_OPTIONS } from '@/features/subscriptions/types'
 
 export const subscriptionFormSchema = z
   .object({
     planName: z.string().trim().min(1, 'Plan name is required').max(120),
-    status: z.enum(SUBSCRIPTION_STATUS_OPTIONS),
+    status: z.enum(SUBSCRIPTION_PERIOD_STATUS_OPTIONS),
     startsAt: z.string().min(1, 'Start date is required'),
     endsAt: z.string().min(1, 'End date is required'),
   })
@@ -51,7 +51,7 @@ export function defaultSubscriptionFormValues(
   end.setMonth(end.getMonth() + 1)
   return {
     planName: 'Standard',
-    status: 'TRIAL',
+    status: 'ACTIVE',
     startsAt: start.toISOString().slice(0, 10),
     endsAt: end.toISOString().slice(0, 10),
     ...overrides,
