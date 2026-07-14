@@ -19,7 +19,12 @@ function asSubscriptionArray(
 }
 
 function normalizeSubscription(
-  row: Partial<Subscription> & { id: string; companyId: string; planName?: string; notes?: string | null },
+  row: Partial<Subscription> & {
+    id: string
+    companyId: string
+    planName?: string
+    notes?: string | null
+  },
 ): Subscription {
   const planName = row.planName ?? row.planCode ?? ''
   const isStatusOnly = Boolean(row.isStatusOnly) || String(row.id).startsWith('status-')
@@ -40,9 +45,48 @@ function normalizeSubscription(
   }
 }
 
+function paginateLocal(
+  items: Subscription[],
+  params?: ListQueryParams,
+): PaginatedResponse<Subscription> {
+  const page = params?.page ?? 1
+  const pageSize = params?.pageSize ?? 20
+  const q = params?.q?.trim().toLowerCase()
+  let filtered = items
+  if (q) {
+    filtered = items.filter((item) => {
+      const haystack = [item.companyName, item.planName, item.planCode, item.status, item.notes]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      return haystack.includes(q)
+    })
+  }
+
+  const sortKey = params?.sort
+  if (sortKey) {
+    const dir = params?.order === 'desc' ? -1 : 1
+    filtered = [...filtered].sort((a, b) => {
+      const left = String(a[sortKey as keyof Subscription] ?? '')
+      const right = String(b[sortKey as keyof Subscription] ?? '')
+      return left.localeCompare(right) * dir
+    })
+  }
+
+  const total = filtered.length
+  const start = (page - 1) * pageSize
+  return {
+    items: filtered.slice(start, start + pageSize),
+    page,
+    pageSize,
+    total,
+    totalPages: Math.max(1, Math.ceil(total / pageSize)),
+  }
+}
+
 /**
  * Live API has no flat `/admin/subscriptions` index.
- * Build a portfolio view from companies + per-company subscription status/periods.
+ * Aggregate real periods from every company: GET …/companies/{id}/subscriptions
  */
 export async function listSubscriptions(
   params?: ListQueryParams,
@@ -58,73 +102,37 @@ export async function listSubscriptions(
   }
 
   const companies = await listCompanies({
-    page: params?.page ?? 1,
-    pageSize: params?.pageSize ?? 20,
-    q: params?.q,
-    sort: params?.sort,
-    order: params?.order,
+    page: 1,
+    pageSize: 100,
+    q: undefined,
   })
 
-  const items = (
+  const allPeriods = (
     await Promise.all(
       companies.items.map(async (company) => {
         try {
-          const periods = asSubscriptionArray(await listCompanySubscriptions(company.id, { page: 1, pageSize: 1 }))
-          const latest = periods[0]
-          if (latest) {
-            return normalizeSubscription({
-              ...latest,
+          const periods = asSubscriptionArray(
+            await listCompanySubscriptions(company.id, { page: 1, pageSize: 100 }),
+          )
+          return periods.map((period) =>
+            normalizeSubscription({
+              ...period,
               companyId: company.id,
               companyName: company.name,
-            })
-          }
+            }),
+          )
         } catch {
-          // fall through to status-only row
-        }
-
-        try {
-          const status = await getSubscriptionStatus(company.id)
-          if (status.currentPeriod) {
-            return normalizeSubscription({
-              ...status.currentPeriod,
-              companyId: company.id,
-              companyName: company.name,
-              status: status.currentPeriod.status ?? status.subscriptionStatus,
-            })
-          }
-          return normalizeSubscription({
-            id: `status-${company.id}`,
-            companyId: company.id,
-            companyName: company.name,
-            status: status.subscriptionStatus,
-            planName: '',
-            startsAt: '',
-            endsAt: '',
-            isStatusOnly: true,
-          })
-        } catch {
-          return normalizeSubscription({
-            id: `status-${company.id}`,
-            companyId: company.id,
-            companyName: company.name,
-            status: company.subscriptionStatus ?? 'PENDING',
-            planName: '',
-            startsAt: '',
-            endsAt: '',
-            isStatusOnly: true,
-          })
+          return [] as Subscription[]
         }
       }),
     )
-  ).filter(Boolean)
+  )
+    .flat()
+    .filter((period) => !period.isStatusOnly && Boolean(period.id))
 
-  return {
-    items,
-    page: companies.page,
-    pageSize: companies.pageSize,
-    total: companies.total,
-    totalPages: companies.totalPages,
-  }
+  allPeriods.sort((a, b) => String(b.endsAt).localeCompare(String(a.endsAt)))
+
+  return paginateLocal(allPeriods, params)
 }
 
 export async function listCompanySubscriptions(
@@ -147,7 +155,9 @@ export async function listCompanySubscriptions(
     },
   )
   if (Array.isArray(data)) {
-    return data.map((item) => normalizeSubscription({ ...item, companyId: item.companyId ?? companyId }))
+    return data.map((item) =>
+      normalizeSubscription({ ...item, companyId: item.companyId ?? companyId }),
+    )
   }
   return {
     ...data,
@@ -161,10 +171,10 @@ export async function getSubscriptionStatus(companyId: string): Promise<Subscrip
   if (env.useMock) {
     return callMock(async () => {
       const subs = await mockHandlers.listCompanySubscriptions(companyId)
-      const current = Array.isArray(subs) ? subs[0] : undefined
+      const current = subs[0]
       return {
+        subscriptionStatus: current?.status ?? 'TRIAL',
         companyId,
-        subscriptionStatus: current?.status?.toUpperCase?.() ?? 'TRIAL',
         currentPeriod: current
           ? normalizeSubscription({ ...current, planName: current.planName ?? current.planCode })
           : null,
@@ -174,7 +184,15 @@ export async function getSubscriptionStatus(companyId: string): Promise<Subscrip
   const { data } = await apiClient.get<SubscriptionStatusPayload>(
     `/admin/companies/${companyId}/subscription-status`,
   )
-  return data
+  return {
+    ...data,
+    currentPeriod: data.currentPeriod
+      ? normalizeSubscription({
+          ...data.currentPeriod,
+          companyId: data.currentPeriod.companyId ?? companyId,
+        })
+      : null,
+  }
 }
 
 export async function getSubscription(id: string, companyId?: string): Promise<Subscription> {
@@ -183,21 +201,19 @@ export async function getSubscription(id: string, companyId?: string): Promise<S
     return normalizeSubscription({ ...sub, planName: sub.planName ?? sub.planCode })
   }
   if (!companyId) {
-    throw new Error('companyId is required to load a subscription from the live admin API')
+    throw new Error('companyId is required to load a subscription period')
   }
   if (id.startsWith('status-')) {
     const status = await getSubscriptionStatus(companyId)
     return normalizeSubscription({
       id,
       companyId,
-      companyName: status.currentPeriod?.companyName ?? 'Company',
+      companyName: 'Company',
       status: status.subscriptionStatus,
-      planName: status.currentPeriod?.planName,
-      planCode: status.currentPeriod?.planCode,
-      startsAt: status.currentPeriod?.startsAt,
-      endsAt: status.currentPeriod?.endsAt,
-      renewedAt: status.currentPeriod?.renewedAt ?? null,
-      suspendedAt: status.currentPeriod?.suspendedAt ?? null,
+      planName: '',
+      startsAt: '',
+      endsAt: '',
+      isStatusOnly: true,
     })
   }
   const { data } = await apiClient.get<Subscription>(
@@ -286,9 +302,10 @@ export async function renewSubscription(
   companyId: string,
   payload: {
     planName: string
-    status?: string
+    status: string
     startsAt: string
     endsAt: string
+    notes?: string
   },
   _id?: string,
 ): Promise<Subscription> {
@@ -296,21 +313,16 @@ export async function renewSubscription(
     const id = _id
     if (!id) throw new Error('subscription id required in mock mode')
     const sub = await callMock(() => mockHandlers.renewSubscription(id))
-    sub.planName = payload.planName
-    sub.planCode = payload.planName
-    sub.startsAt = payload.startsAt
-    sub.endsAt = payload.endsAt
-    if (payload.status) sub.status = payload.status
     return normalizeSubscription({ ...sub, planName: sub.planName ?? sub.planCode })
   }
-  // Renew creates a new period — same required fields as create (planName + dates).
   const { data } = await apiClient.post<Subscription>(
     `/admin/companies/${companyId}/subscriptions/renew`,
     {
       planName: payload.planName,
+      status: payload.status,
       startsAt: payload.startsAt,
       endsAt: payload.endsAt,
-      ...(payload.status ? { status: payload.status } : {}),
+      ...(payload.notes ? { notes: payload.notes } : {}),
     },
   )
   return normalizeSubscription({ ...data, companyId: data.companyId ?? companyId })

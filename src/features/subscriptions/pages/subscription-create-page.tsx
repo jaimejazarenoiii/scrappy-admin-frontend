@@ -1,7 +1,9 @@
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
 import { createSubscription } from '@/features/subscriptions/api/subscriptions-api'
 import { SubscriptionForm } from '@/features/subscriptions/components/subscription-form'
+import { listCompanies } from '@/features/companies/api/companies-api'
 import { useCompany } from '@/features/companies/hooks/use-company-detail'
 import {
   toApiDateTime,
@@ -9,14 +11,23 @@ import {
 } from '@/features/subscriptions/validation/subscription-schema'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card'
 import { PageHeader } from '@/shared/ui/management/page-header'
+import { Select } from '@/shared/ui/select'
 import { showError, showSuccess } from '@/shared/ui/toast'
 
 export function SubscriptionCreatePage() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const companyId = params.get('companyId') ?? ''
+  const companyIdFromQuery = params.get('companyId') ?? ''
+  const [selectedCompanyId, setSelectedCompanyId] = useState(companyIdFromQuery)
+  const companyId = selectedCompanyId || companyIdFromQuery
+
   const { data: company } = useCompany(companyId)
+  const companiesQuery = useQuery({
+    queryKey: ['pm', 'companies', 'picker'],
+    queryFn: () => listCompanies({ page: 1, pageSize: 100 }),
+    enabled: !companyIdFromQuery,
+  })
 
   const mutation = useMutation({
     mutationFn: (values: SubscriptionFormValues) =>
@@ -38,36 +49,17 @@ export function SubscriptionCreatePage() {
     onError: (error) => showError(error instanceof Error ? error.message : 'Create failed'),
   })
 
-  if (!companyId) {
-    return (
-      <div className="mx-auto max-w-xl space-y-5">
-        <PageHeader
-          title="Create subscription"
-          description="Open this form from a company to create a subscription period."
-          breadcrumbs={
-            <Link to="/companies" className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]">
-              ← Companies
-            </Link>
-          }
-        />
-        <p className="text-sm text-[var(--muted)]">
-          Company context is missing. Go to a company → Subscriptions → Create period.
-        </p>
-      </div>
-    )
-  }
-
   return (
     <div className="mx-auto max-w-xl space-y-5">
       <PageHeader
         title="Create subscription"
-        description="Set plan, entitlement status, and period dates for this company."
+        description="Create a subscription period for a company (POST …/subscriptions)."
         breadcrumbs={
           <Link
-            to={`/companies/${companyId}`}
+            to="/subscriptions"
             className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
           >
-            ← {company?.name ?? 'Company'}
+            ← Subscriptions
           </Link>
         }
       />
@@ -75,16 +67,49 @@ export function SubscriptionCreatePage() {
         <CardHeader>
           <CardTitle>Subscription period</CardTitle>
         </CardHeader>
-        <CardContent>
-          <SubscriptionForm
-            companyName={company?.name}
-            submitLabel="Create subscription"
-            loading={mutation.isPending}
-            onCancel={() => navigate(`/companies/${companyId}`)}
-            onSubmit={async (values) => {
-              await mutation.mutateAsync(values)
-            }}
-          />
+        <CardContent className="space-y-4">
+          {!companyIdFromQuery ? (
+            <div className="space-y-1.5">
+              <label htmlFor="subscription-company" className="text-sm font-medium">
+                Company
+              </label>
+              <Select
+                id="subscription-company"
+                value={selectedCompanyId}
+                onChange={(event) => setSelectedCompanyId(event.target.value)}
+              >
+                <option value="">Select a company…</option>
+                {(companiesQuery.data?.items ?? []).map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          ) : (
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
+                Company
+              </p>
+              <p className="mt-1 text-sm font-medium">{company?.name ?? 'Loading…'}</p>
+            </div>
+          )}
+
+          {companyId ? (
+            <SubscriptionForm
+              companyName={company?.name}
+              submitLabel="Create subscription"
+              loading={mutation.isPending}
+              onCancel={() => navigate('/subscriptions')}
+              onSubmit={async (values) => {
+                await mutation.mutateAsync(values)
+              }}
+            />
+          ) : (
+            <p className="text-sm text-[var(--muted)]">
+              Select a company to create a subscription period.
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

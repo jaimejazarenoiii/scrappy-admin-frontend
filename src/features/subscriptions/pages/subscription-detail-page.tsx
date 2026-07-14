@@ -1,6 +1,7 @@
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
+import { useState } from 'react'
 import {
   getSubscription,
   updateSubscription,
@@ -17,7 +18,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card'
 import { PageHeader } from '@/shared/ui/management/page-header'
 import { StatusBadge } from '@/shared/ui/management/status-badge'
 import { showError, showSuccess } from '@/shared/ui/toast'
-import { useState } from 'react'
 
 function displayText(value?: string | null): string {
   const trimmed = value?.trim()
@@ -50,7 +50,7 @@ export function SubscriptionDetailPage() {
   const { data: sub, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['pm', 'subscriptions', 'detail', id, companyIdParam],
     queryFn: () => getSubscription(id, companyIdParam || undefined),
-    enabled: Boolean(id) && !isStatusOnly,
+    enabled: Boolean(id) && !isStatusOnly && Boolean(companyIdParam),
   })
 
   const companyId = sub?.companyId || companyIdParam
@@ -65,29 +65,26 @@ export function SubscriptionDetailPage() {
         endsAt: toApiDateTime(values.endsAt, true),
         notes: values.notes?.trim() ? values.notes.trim() : null,
       }),
-    onSuccess: () => {
+    onSuccess: async () => {
       void queryClient.invalidateQueries({ queryKey: ['pm', 'subscriptions'] })
       void queryClient.invalidateQueries({ queryKey: ['subscriptions'] })
       void queryClient.invalidateQueries({ queryKey: ['pm', 'companies'] })
+      await refetch()
       setEditing(false)
       showSuccess('Subscription updated')
     },
     onError: (err) => showError(err instanceof Error ? err.message : 'Update failed'),
   })
 
-  if (isStatusOnly) {
-    const inferredCompanyId = id.replace(/^status-/, '') || companyIdParam
+  if (isStatusOnly || (!companyIdParam && !isLoading)) {
     return (
       <div className="mx-auto max-w-2xl space-y-5">
         <PageHeader
-          title="No subscription period"
-          description="This company has entitlement status only — there is no period record to view."
+          title="Subscription period"
+          description="Open a period from the subscriptions list to view or edit it."
           breadcrumbs={
-            <Link
-              to={inferredCompanyId ? `/companies/${inferredCompanyId}` : '/subscriptions'}
-              className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
-            >
-              ← Back
+            <Link to="/subscriptions" className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]">
+              ← Subscriptions
             </Link>
           }
         />
@@ -96,14 +93,9 @@ export function SubscriptionDetailPage() {
             <p>Plan: None</p>
             <p>Period: None</p>
             <p>Notes: None</p>
-            {inferredCompanyId ? (
-              <Link
-                to={`/companies/${inferredCompanyId}`}
-                className="inline-flex text-[var(--primary)] hover:underline"
-              >
-                Open company → create a subscription period
-              </Link>
-            ) : null}
+            <Link to="/subscriptions" className="inline-flex text-[var(--primary)] hover:underline">
+              Back to all subscriptions
+            </Link>
           </CardContent>
         </Card>
       </div>
@@ -117,6 +109,9 @@ export function SubscriptionDetailPage() {
   if (isError || !sub) {
     return (
       <div className="space-y-3">
+        <Link to="/subscriptions" className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]">
+          ← Subscriptions
+        </Link>
         <p className="text-sm text-red-700">
           {error instanceof Error ? error.message : 'Subscription not found'}
         </p>
@@ -131,13 +126,10 @@ export function SubscriptionDetailPage() {
     <div className="mx-auto max-w-2xl space-y-5">
       <PageHeader
         title={planLabel(sub) || 'Subscription period'}
-        description="Period details, notes, and lifecycle actions for this company."
+        description="View and edit this subscription period (PATCH). Use lifecycle actions for renew / expire / suspend."
         breadcrumbs={
-          <Link
-            to={companyId ? `/companies/${companyId}` : '/subscriptions'}
-            className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
-          >
-            ← {company?.name ?? sub.companyName ?? 'Company'}
+          <Link to="/subscriptions" className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]">
+            ← Subscriptions
           </Link>
         }
       />
@@ -180,13 +172,7 @@ export function SubscriptionDetailPage() {
               <div>
                 <dt className="text-[var(--muted)]">Company</dt>
                 <dd className="mt-0.5 font-medium">
-                  {companyId ? (
-                    <Link to={`/companies/${companyId}`} className="text-[var(--primary)] hover:underline">
-                      {displayText(company?.name ?? sub.companyName)}
-                    </Link>
-                  ) : (
-                    displayText(sub.companyName)
-                  )}
+                  {displayText(company?.name ?? sub.companyName)}
                 </dd>
               </div>
               <div>
