@@ -38,6 +38,11 @@ export interface PlatformOverviewMetrics {
   suspended: number
   newCompaniesToday: number
   newCompaniesThisMonth: number
+  /** Portfolio rollups from overview items (live API). */
+  totalTransactionAmount?: number
+  activeEmployees?: number
+  activeVehicles?: number
+  totalTransactions?: number
 }
 
 export interface DashboardSummaryResponse extends PlatformOverviewMetrics {

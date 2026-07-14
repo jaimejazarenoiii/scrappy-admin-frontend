@@ -79,13 +79,24 @@ export function filtersToApiParams(
 ): Record<string, string | number> {
   const params: Record<string, string | number> = {}
 
-  if (filters.from) params.from = filters.from
-  if (filters.to) params.to = filters.to
-  if (filters.subscriptionStatus) params.subscriptionStatus = filters.subscriptionStatus
-  if (filters.companyStatus) params.companyStatus = filters.companyStatus
+  // Live admin analytics accepts period + optional CUSTOM from/to (ISO), not granularity.
+  if (filters.from && filters.to) {
+    params.period = 'CUSTOM'
+    params.from = new Date(`${filters.from}T00:00:00.000Z`).toISOString()
+    params.to = new Date(`${filters.to}T23:59:59.999Z`).toISOString()
+  } else {
+    params.period = 'THIS_MONTH'
+  }
+
   if (filters.companyId) params.companyId = filters.companyId
-  if (filters.granularity) params.granularity = filters.granularity
-  if (filters.expiringWithinDays) params.expiringWithinDays = filters.expiringWithinDays
+  // Company / subscription status filters are applied client-side when needed;
+  // keep for forward-compat if the API adds them later.
+  if (filters.subscriptionStatus) {
+    params.subscriptionStatus = filters.subscriptionStatus.toUpperCase()
+  }
+  if (filters.companyStatus) {
+    params.companyStatus = filters.companyStatus.toUpperCase()
+  }
 
   if (extra) {
     for (const [key, value] of Object.entries(extra)) {

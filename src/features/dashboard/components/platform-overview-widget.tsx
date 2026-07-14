@@ -1,6 +1,11 @@
 import { useDashboardSummary } from '@/features/dashboard/hooks/use-dashboard-summary'
 import { MetricStrip } from '@/shared/ui/widgets/metric-strip'
 
+function money(value: number | undefined): string {
+  if (value == null) return '—'
+  return value.toLocaleString(undefined, { maximumFractionDigits: 0 })
+}
+
 export function PlatformOverviewWidget() {
   const { data, isLoading, error, refetch } = useDashboardSummary()
 
@@ -26,7 +31,7 @@ export function PlatformOverviewWidget() {
         { key: 'total', label: 'Companies', value: data?.total ?? '—' },
         {
           key: 'active',
-          label: 'Active',
+          label: 'Active sub',
           value: data?.active ?? '—',
           tone: 'success',
         },
@@ -50,14 +55,15 @@ export function PlatformOverviewWidget() {
           tone: 'danger',
         },
         {
-          key: 'today',
-          label: 'New today',
-          value: data?.newCompaniesToday ?? '—',
+          key: 'tx',
+          label: 'Transactions',
+          value: data?.totalTransactions ?? '—',
         },
         {
-          key: 'month',
-          label: 'New this month',
-          value: data?.newCompaniesThisMonth ?? '—',
+          key: 'volume',
+          label: 'Tx amount',
+          value: money(data?.totalTransactionAmount),
+          hint: `${data?.activeEmployees ?? 0} employees · ${data?.activeVehicles ?? 0} vehicles`,
         },
       ]}
     />
