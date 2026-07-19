@@ -80,13 +80,24 @@ export interface CompanyAccountPasswordResetResult {
   passwordChangeRequired: true
 }
 
+/** Live `GET /admin/analytics/companies/{id}/company` payload. */
 export interface CompanyStatistics {
   companyId: string
-  transactionVolume: number
-  tripVolume: number
-  expenseVolume: number
-  activeUsers: number
-  lastActivityAt: string | null
+  totalInboundTransactions: number
+  totalOutboundTransactions: number
+  totalTransactionAmount: number
+  inboundAmount: number
+  outboundAmount: number
+  totalExpenses: number
+  totalPayroll: number
+  netOperationalAmount: number
+  activeEmployees: number
+  activeTrips: number
+  activeVehicles: number
+  period: string | null
+  periodFrom: string | null
+  periodTo: string | null
+  generatedAt: string | null
 }
 
 export interface AdministrativeNote {

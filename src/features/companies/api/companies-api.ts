@@ -96,30 +96,71 @@ export async function resetCompanyAccountPassword(
   return data
 }
 
+function emptyCompanyStatistics(id: string): CompanyStatistics {
+  return {
+    companyId: id,
+    totalInboundTransactions: 0,
+    totalOutboundTransactions: 0,
+    totalTransactionAmount: 0,
+    inboundAmount: 0,
+    outboundAmount: 0,
+    totalExpenses: 0,
+    totalPayroll: 0,
+    netOperationalAmount: 0,
+    activeEmployees: 0,
+    activeTrips: 0,
+    activeVehicles: 0,
+    period: null,
+    periodFrom: null,
+    periodTo: null,
+    generatedAt: null,
+  }
+}
+
 export async function getCompanyStatistics(id: string): Promise<CompanyStatistics> {
-  if (env.useMock) return callMock(() => mockHandlers.getCompanyStatistics(id))
-  // Prefer per-company admin analytics when live.
+  if (env.useMock) {
+    const mock = await callMock(() => mockHandlers.getCompanyStatistics(id))
+    return {
+      ...emptyCompanyStatistics(id),
+      totalInboundTransactions: mock.transactionVolume,
+      totalTransactionAmount: mock.transactionVolume,
+      inboundAmount: mock.transactionVolume,
+      totalExpenses: mock.expenseVolume,
+      activeEmployees: mock.activeUsers,
+      activeTrips: mock.tripVolume,
+      generatedAt: mock.lastActivityAt,
+      period: 'THIS_MONTH',
+    }
+  }
   try {
     const { data } = await apiClient.get<Record<string, unknown>>(
       `/admin/analytics/companies/${id}/company`,
     )
+    const applied = (data.appliedFilters ?? {}) as Record<string, unknown>
+    const num = (value: unknown) => {
+      const parsed = Number(value)
+      return Number.isFinite(parsed) ? parsed : 0
+    }
     return {
       companyId: id,
-      transactionVolume: Number(data.totalTransactionAmount ?? data.transactionVolume ?? 0),
-      tripVolume: Number(data.activeTrips ?? data.tripVolume ?? 0),
-      expenseVolume: Number(data.totalExpenses ?? data.expenseVolume ?? 0),
-      activeUsers: Number(data.activeEmployees ?? data.activeUsers ?? 0),
-      lastActivityAt: (data.generatedAt as string) ?? null,
+      totalInboundTransactions: num(data.totalInboundTransactions),
+      totalOutboundTransactions: num(data.totalOutboundTransactions),
+      totalTransactionAmount: num(data.totalTransactionAmount),
+      inboundAmount: num(data.inboundAmount),
+      outboundAmount: num(data.outboundAmount),
+      totalExpenses: num(data.totalExpenses),
+      totalPayroll: num(data.totalPayroll),
+      netOperationalAmount: num(data.netOperationalAmount),
+      activeEmployees: num(data.activeEmployees),
+      activeTrips: num(data.activeTrips),
+      activeVehicles: num(data.activeVehicles),
+      period: typeof applied.period === 'string' ? applied.period : null,
+      periodFrom: typeof applied.from === 'string' ? applied.from : null,
+      periodTo: typeof applied.to === 'string' ? applied.to : null,
+      generatedAt: typeof data.generatedAt === 'string' ? data.generatedAt : null,
     }
   } catch {
-    return {
-      companyId: id,
-      transactionVolume: 0,
-      tripVolume: 0,
-      expenseVolume: 0,
-      activeUsers: 0,
-      lastActivityAt: null,
-    }
+    return emptyCompanyStatistics(id)
   }
 }
 
